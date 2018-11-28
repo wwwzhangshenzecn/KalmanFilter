@@ -1,0 +1,56 @@
+import numpy
+import pylab
+
+'''
+    卡尔曼滤波的模拟,称重模拟，每一次称重，仪器测量都会不一样，测量值形成一个均值真实值，方差为0.01的
+    正态分布，
+    根据经验预测值=真实值相等+偏差
+    然后进行卡尔曼滤波进行更为精准的预测
+    假设预测值到真实值的状态转移矩阵为 1 ，记预测的值与实际值完全一样
+'''
+# 假设 H = 1
+H = 1
+# 参数初始化
+n_iter = 100
+sz = (n_iter,)  # size of array
+x = -0.37727  # truth value (typo in example at top of p. 13 calls this z)真实值
+z = numpy.random.normal(x, 0.01, size=sz)  # observations (normal about x, sigma=0.1)观测值
+
+
+
+xpre = numpy.zeros(sz) # t时刻状态矩阵
+p = numpy.zeros(sz) # t时刻状态偏差矩阵--协方差矩阵
+Q = 0.02 # 预测过程噪声
+
+xestimate = numpy.zeros(sz) # 预测矩阵 -- 经验预测
+pestimate = numpy.zeros(sz) # 预测协方差
+K = numpy.zeros(sz) # 卡尔曼增益
+
+R = 0.01 # 测量噪声 -- 测量过程中的偏差
+# 设初始为0 协方差为1
+xpre[0] = 0.0
+p[0] = 1.0
+
+for k in range(1,n_iter):
+    # 预测部分
+    xestimate[k] = xpre[k - 1] # 假设其他量都没有，直接预测上次的位置
+    pestimate[k] = p[k] + Q
+    # 更新部分
+    K[k] = pestimate[k] / (pestimate[k] + R)
+    xpre[k] = xpre[k - 1] + K[k]*(z[k] - xestimate[k] *H)
+    p[k] = p[k - 1] - K[k] * H *p[k - 1]
+
+from pylab import mpl
+
+mpl.rcParams['font.sans-serif'] = ['FangSong'] # 指定默认字体
+mpl.rcParams['axes.unicode_minus'] = False # 解决保存图像是负号'-'显示为方块的问题
+
+pylab.figure()
+pylab.plot(z[10:], '--', label='测量值')
+pylab.plot(xpre[10:], '.:', label='预测值')
+# pylab.plot(pestimate, 'k+', label='噪声测量')
+pylab.axhline(x, color='g', label='理想值')
+pylab.xlabel('Iteration')
+pylab.ylabel('Voltage')
+pylab.legend()
+pylab.show()
